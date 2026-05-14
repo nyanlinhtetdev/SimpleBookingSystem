@@ -1,0 +1,73 @@
+﻿@model SimpleBookingSystem.ViewModels.Admin.ResourceFormViewModel
+@{
+    ViewData["Title"] = "Add Resource";
+    bool isEdit = Model.ResourceId.HasValue;
+}
+
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-4">@(isEdit ? "Edit Resource" : "Add New Resource")</h4>
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <form asp-action="@(isEdit ? "EditResource" : "CreateResource")" method="post">
+                        @Html.AntiForgeryToken()
+
+                        @if (isEdit)
+                        {
+                            <input type="hidden" asp-for="ResourceId" />
+                        }
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-semibold"></label>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. Meeting Room Alpha" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ResourceTypeId" class="form-label fw-semibold">Resource Type</label>
+                            <select asp-for="ResourceTypeId"
+                                    asp-items="Model.ResourceTypes"
+                                    class="form-select">
+                                <option value="">-- Select Type --</option>
+                            </select>
+                            <span asp-validation-for="ResourceTypeId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"
+                                      placeholder="Brief description of this resource"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Location" class="form-label fw-semibold"></label>
+                            <input asp-for="Location" class="form-control" placeholder="e.g. Block A, Level 2" />
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4 form-check">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsActive" class="form-check-label">Active (visible to users)</label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                @(isEdit ? "Save Changes" : "Create Resource")
+                            </button>
+                            <a asp-action="ManageResources" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

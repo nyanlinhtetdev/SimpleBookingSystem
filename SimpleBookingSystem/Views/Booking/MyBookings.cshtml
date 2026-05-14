@@ -1,0 +1,94 @@
+﻿@model List<SimpleBookingSystem.ViewModels.Booking.BookingViewModel>
+@{
+    ViewData["Title"] = "My Bookings";
+}
+
+<div class="container my-4">
+    <h3 class="fw-bold mb-4">My Bookings</h3>
+
+    @* Success / Error alerts *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x fs-1 text-muted"></i>
+            <p class="text-muted mt-3">You have no bookings yet.</p>
+            <a asp-controller="Resource" asp-action="Index" class="btn btn-primary">Browse Resources</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Resource</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var booking in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@booking.ResourceName</td>
+                            <td>@booking.TypeName</td>
+                            <td>@(booking.Location ?? "-")</td>
+                            <td>@booking.StartTime.ToString("dd MMM yyyy, hh:mm tt")</td>
+                            <td>@booking.EndTime.ToString("dd MMM yyyy, hh:mm tt")</td>
+                            <td>
+                                @if (booking.Status == "Active")
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Cancelled</span>
+                                }
+                            </td>
+                            <td>
+                                @if (booking.Status == "Active")
+                                {
+                                    <a asp-action="Edit"
+                                       asp-route-bookingId="@booking.BookingId"
+                                       class="btn btn-sm btn-outline-primary me-1">
+                                        Edit
+                                    </a>
+
+                                    <form asp-action="Cancel" method="post" class="d-inline"
+                                          onsubmit="return confirm('Are you sure you want to cancel this booking?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="bookingId" value="@booking.BookingId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">No actions</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

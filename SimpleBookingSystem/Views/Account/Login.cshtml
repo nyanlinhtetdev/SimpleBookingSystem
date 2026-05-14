@@ -1,0 +1,63 @@
+﻿@model SimpleBookingSystem.ViewModels.Account.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var returnUrl = Context.Request.Query["returnUrl"].ToString();
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-1">Welcome Back</h3>
+                <p class="text-center text-muted mb-4 small">Login to manage your bookings</p>
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none" id="validationSummary"></div>
+
+                <form asp-action="Login" asp-controller="Account" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @* Pass returnUrl through the form so it survives POST *@
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" placeholder="Enter your email" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                    </div>
+                </form>
+
+                <hr class="my-4" />
+
+                <!-- Register link — inside Login page only -->
+                <p class="text-center mb-0">
+                    Don't have an account?
+                    <a asp-action="Register" asp-controller="Account" class="fw-semibold">
+                        Register here
+                    </a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const summary = document.getElementById("validationSummary");
+        if (summary && summary.querySelectorAll("li").length > 0) {
+            summary.classList.remove("d-none");
+        }
+    </script>
+}

@@ -1,0 +1,44 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="bg-primary text-white py-5">
+    <div class="container text-center py-4">
+        <h1 class="display-5 fw-bold mb-3">Simple Booking System</h1>
+        <p class="lead mb-4">
+            Easily book meeting rooms, lab equipment, study pods and more —
+            all in one place.
+        </p>
+        <a asp-controller="Resource" asp-action="Index"
+           class="btn btn-warning btn-lg fw-bold px-5">
+            <i class="bi bi-search me-2"></i> Browse Resources
+        </a>
+    </div>
+</div>
+
+<!-- Feature highlights -->
+<div class="container py-5">
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 p-4">
+                <i class="bi bi-calendar-check fs-1 text-primary mb-3"></i>
+                <h5 class="fw-bold">Easy Booking</h5>
+                <p class="text-muted">Browse available resources and book your preferred time slot in seconds.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 p-4">
+                <i class="bi bi-clock-history fs-1 text-success mb-3"></i>
+                <h5 class="fw-bold">Real-Time Availability</h5>
+                <p class="text-muted">See live availability on an interactive calendar before you book.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 p-4">
+                <i class="bi bi-pencil-square fs-1 text-warning mb-3"></i>
+                <h5 class="fw-bold">Manage Bookings</h5>
+                <p class="text-muted">Edit or cancel your bookings anytime from your personal dashboard.</p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,92 @@
+﻿@model SimpleBookingSystem.ViewModels.Admin.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container my-4">
+    <h3 class="fw-bold mb-4">Admin Dashboard</h3>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-1 fw-bold text-primary">@Model.TotalUsers</div>
+                <div class="text-muted">Total Users</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-1 fw-bold text-success">@Model.TotalResources</div>
+                <div class="text-muted">Total Resources</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-1 fw-bold text-warning">@Model.TotalBookings</div>
+                <div class="text-muted">Total Bookings</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-1 fw-bold text-success">@Model.ActiveBookings</div>
+                <div class="text-muted">Active Bookings</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-1 fw-bold text-secondary">@Model.CancelledBookings</div>
+                <div class="text-muted">Cancelled Bookings</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bookings -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent fw-bold">Recent Bookings</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User</th>
+                            <th>Resource</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in Model.RecentBookings)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@b.UserName</div>
+                                    <div class="text-muted small">@b.UserEmail</div>
+                                </td>
+                                <td>
+                                    <div>@b.ResourceName</div>
+                                    <div class="text-muted small">@b.TypeName</div>
+                                </td>
+                                <td>@b.StartTime.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                <td>@b.EndTime.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                <td>
+                                    @if (b.Status == "Active")
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-transparent">
+            <a asp-action="AllBookings" class="btn btn-sm btn-outline-primary">View All Bookings</a>
+        </div>
+    </div>
+</div>

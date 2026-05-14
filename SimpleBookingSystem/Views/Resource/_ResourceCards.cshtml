@@ -1,0 +1,54 @@
+﻿@model List<SimpleBookingSystem.ViewModels.Resource.ResourceViewModel>
+
+@if (!Model.Any())
+{
+    <div class="col-12 text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted"></i>
+        <p class="text-muted mt-3">No resources found. Try a different search.</p>
+    </div>
+}
+else
+{
+    @foreach (var resource in Model)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <span class="badge bg-primary-subtle text-primary mb-2">
+                        @resource.TypeName
+                    </span>
+                    <h5 class="card-title fw-bold">@resource.Name</h5>
+                    <p class="card-text text-muted small">@resource.Description</p>
+
+                    @if (!string.IsNullOrWhiteSpace(resource.Location))
+                    {
+                        <p class="card-text small">
+                            <i class="bi bi-geo-alt text-secondary me-1"></i>
+                            @resource.Location
+                        </p>
+                    }
+                </div>
+
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    @if (User.Identity!.IsAuthenticated)
+                    {
+                        <a asp-controller="Booking"
+                           asp-action="Create"
+                           asp-route-resourceId="@resource.ResourceId"
+                           class="btn btn-primary w-100">
+                            Book Now
+                        </a>
+                    }
+                    else
+                    {
+                        <!-- Pass returnUrl so user lands back here after login -->
+                        <a href="/Account/Login?returnUrl=/Booking/Create?resourceId=@resource.ResourceId"
+                           class="btn btn-primary w-100">
+                            Book Now
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}

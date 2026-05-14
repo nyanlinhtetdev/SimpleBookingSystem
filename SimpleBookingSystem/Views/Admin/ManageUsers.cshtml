@@ -1,0 +1,92 @@
+﻿@model List<SimpleBookingSystem.ViewModels.Admin.AdminUserViewModel>
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<div class="container my-4">
+    <h3 class="fw-bold mb-4">Manage Users</h3>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Bookings</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@u.FullName</td>
+                        <td>@u.Email</td>
+                        <td>
+                            <span class="badge @(u.Role == "Admin" ? "bg-danger" : "bg-primary")">
+                                @u.Role
+                            </span>
+                        </td>
+                        <td>@u.TotalBookings</td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Inactive</span>
+                            }
+                        </td>
+                        <td>@u.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td>
+                            @* Don't show action buttons for Admin accounts *@
+                            @if (u.Role != "Admin")
+                            {
+                                @if (u.IsActive)
+                                {
+                                    <form asp-action="DeactivateUser" method="post" class="d-inline"
+                                          onsubmit="return confirm('Deactivate this user?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@u.UserId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning me-1">Deactivate</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="ReactivateUser" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@u.UserId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success me-1">Reactivate</button>
+                                    </form>
+                                }
+
+                                <form asp-action="DeleteUser" method="post" class="d-inline"
+                                      onsubmit="return confirm('Permanently remove this user? This cannot be undone.')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.UserId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

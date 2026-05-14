@@ -1,0 +1,241 @@
+﻿@model SimpleBookingSystem.ViewModels.Booking.CreateBookingViewModel
+@{
+    ViewData["Title"] = "Book Resource";
+}
+
+<div class="container my-4">
+
+    <!-- Resource Info -->
+    <div class="card border-0 bg-primary-subtle mb-4">
+        <div class="card-body">
+            <span class="badge bg-primary mb-1">@Model.TypeName</span>
+            <h4 class="fw-bold mb-1">@Model.ResourceName</h4>
+            @if (!string.IsNullOrWhiteSpace(Model.Location))
+            {
+                <p class="mb-0 small text-muted">
+                    <i class="bi bi-geo-alt me-1"></i>@Model.Location
+                </p>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(TempData["Error"]?.ToString()))
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="Create" asp-controller="Booking" method="post" id="bookingForm">
+        @Html.AntiForgeryToken()
+
+        @* Use plain name attributes — easier for model binding *@
+        <input type="hidden" name="ResourceId" value="@Model.ResourceId" />
+        <input type="hidden" name="ResourceName" value="@Model.ResourceName" />
+        <input type="hidden" name="TypeName" value="@Model.TypeName" />
+        <input type="hidden" name="Location" value="@Model.Location" />
+
+        @* These will be filled by JavaScript when user clicks a slot *@
+        <input type="hidden" name="StartTime" id="startTimeHidden" />
+        <input type="hidden" name="EndTime" id="endTimeHidden" />
+
+        <div class="row g-4">
+
+            <!-- Left: Calendar -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent fw-semibold">
+                        <i class="bi bi-calendar3 me-2"></i>Select a Time Slot
+                        <span class="text-muted small fw-normal ms-2">
+                            Click an available slot to select it
+                        </span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div id="calendar"></div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="d-flex gap-3 mt-2 ms-1">
+                    <span class="small"><span class="badge bg-danger me-1">&nbsp;</span> Booked</span>
+                    <span class="small"><span class="badge bg-success me-1">&nbsp;</span> Your Selection</span>
+                    <span class="small"><span class="badge bg-light border me-1 text-dark">&nbsp;</span> Available</span>
+                </div>
+            </div>
+
+            <!-- Right: Booking Summary -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent fw-semibold">
+                        <i class="bi bi-info-circle me-2"></i>Booking Summary
+                    </div>
+                    <div class="card-body d-flex flex-column">
+
+                        <div id="noSelection" class="text-center text-muted py-4">
+                            <i class="bi bi-hand-index fs-2 mb-2 d-block"></i>
+                            Click a time slot on the calendar to select it
+                        </div>
+
+                        <div id="selectionInfo" class="d-none">
+                            <div class="mb-3">
+                                <div class="text-muted small mb-1">Date</div>
+                                <div class="fw-semibold" id="selectedDate">—</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="text-muted small mb-1">Start Time</div>
+                                <div class="fw-semibold" id="selectedStart">—</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="text-muted small mb-1">End Time</div>
+                                <div class="fw-semibold" id="selectedEnd">—</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="text-muted small mb-1">Duration</div>
+                                <div class="fw-semibold" id="selectedDuration">—</div>
+                            </div>
+                            <hr />
+                            <div class="mb-3">
+                                <div class="text-muted small mb-1">Resource</div>
+                                <div class="fw-semibold">@Model.ResourceName</div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Model.Location))
+                            {
+                                <div class="mb-3">
+                                    <div class="text-muted small mb-1">Location</div>
+                                    <div class="fw-semibold">@Model.Location</div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mt-3 d-grid gap-2">
+                            <button type="submit" id="confirmBtn" class="btn btn-primary" disabled>
+                                Confirm Booking
+                            </button>
+                            <a asp-controller="Resource" asp-action="Index" class="btn btn-outline-secondary">
+                                Back to Resources
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+    <script>
+        const resourceId    = "@Model.ResourceId";
+        const startHidden   = document.getElementById("startTimeHidden");
+        const endHidden     = document.getElementById("endTimeHidden");
+        const confirmBtn    = document.getElementById("confirmBtn");
+        const noSelection   = document.getElementById("noSelection");
+        const selectionInfo = document.getElementById("selectionInfo");
+
+        let selectedEventId = null;
+
+        const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+            initialView:  "timeGridWeek",
+            allDaySlot:   false,
+            slotMinTime:  "08:00:00",
+            slotMaxTime:  "20:00:00",
+            slotDuration: "01:00:00",
+            snapDuration: "01:00:00",
+            headerToolbar: {
+                left:   "prev,next today",
+                center: "title",
+                right:  "timeGridWeek,timeGridDay"
+            },
+
+            // ⭐ Fetch booked slots every time the visible date range changes
+            // This includes the initial load — so calendar is always up to date
+            datesSet: function (info) {
+                fetchBookedSlots(info.start);
+            },
+
+            select: function (info) {
+                const start    = info.start;
+                const end      = info.end;
+                const duration = (end - start) / 3600000;
+
+                // Remove previous selection
+                if (selectedEventId) {
+                    const prev = calendar.getEventById(selectedEventId);
+                    if (prev) prev.remove();
+                }
+
+                // Add green selection block
+                selectedEventId = "selection";
+                calendar.addEvent({
+                    id:    "selection",
+                    title: "Your Booking",
+                    start: start,
+                    end:   end,
+                    color: "#198754"
+                });
+
+                // ⭐ Format datetime for C# model binding
+                // Must be: "MM/DD/YYYY HH:MM AM/PM" or ISO format that C# accepts
+                startHidden.value = formatForCSharp(start);
+                endHidden.value   = formatForCSharp(end);
+
+                // Update summary panel
+                noSelection.classList.add("d-none");
+                selectionInfo.classList.remove("d-none");
+
+                document.getElementById("selectedDate").textContent =
+                    start.toLocaleDateString("en-MY", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+                document.getElementById("selectedStart").textContent =
+                    start.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" });
+                document.getElementById("selectedEnd").textContent =
+                    end.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" });
+                document.getElementById("selectedDuration").textContent =
+                    duration === 1 ? "1 hour" : `${duration} hours`;
+
+                confirmBtn.disabled = false;
+            },
+
+            selectable:    true,
+            selectMirror:  true,
+            events:        [],
+            eventColor:    "#dc3545",
+            eventTextColor: "#fff",
+            height:        "auto"
+        });
+
+        calendar.render();
+
+        function fetchBookedSlots(date) {
+            const dateStr = date.toISOString().split("T")[0];
+            fetch(`/Booking/GetBookedSlots?resourceId=${resourceId}&startDate=${dateStr}`)
+                .then(res => res.json())
+                .then(data => {
+                    // Remove only booked events — keep selection green block
+                    calendar.getEvents()
+                        .filter(e => e.id !== "selection")
+                        .forEach(e => e.remove());
+
+                    data.forEach(slot => {
+                        calendar.addEvent({
+                            title: "Booked",
+                            start: slot.start,
+                            end:   slot.end,
+                            color: "#dc3545"
+                        });
+                    });
+                });
+        }
+
+        // ⭐ Format Date to a string C# DateTime can parse reliably
+        function formatForCSharp(date) {
+            const pad = n => String(n).padStart(2, "0");
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+        }
+    </script>
+}

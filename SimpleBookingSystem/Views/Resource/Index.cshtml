@@ -1,0 +1,104 @@
+﻿@model SimpleBookingSystem.ViewModels.Resource.ResourceSearchViewModel
+@{
+    ViewData["Title"] = "Browse Resources";
+}
+
+<!-- ── Search Bar (Option 1 — keyword search) ────────────────────────────── -->
+<div class="bg-primary text-white py-5 mb-4">
+    <div class="container">
+        <h2 class="fw-bold mb-1">Find a Resource</h2>
+        <p class="mb-4">Search by name, or browse by type below.</p>
+
+        <form id="keywordForm" asp-action="Index" asp-controller="Resource" method="get">
+            <div class="row g-2">
+                <div class="col-md-9">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text"
+                               id="keywordInput"
+                               name="keyword"
+                               value="@Model.Keyword"
+                               class="form-control form-control-lg border-start-0"
+                               placeholder="Search by name e.g. Meeting Room Alpha..." />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold">
+                        <i class="bi bi-search me-1"></i> Search
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="container mb-5">
+
+    <!-- ── Option 2 — Resource Type Buttons ─────────────────────────────── -->
+    <div class="mb-4">
+        <p class="fw-semibold text-muted mb-2">Or browse by type:</p>
+        <div class="d-flex flex-wrap gap-2" id="typeButtons">
+            <!-- "All" button -->
+            <button class="btn btn-primary type-btn"
+                    data-type-id=""
+                    onclick="filterByType(this, '')">
+                All
+            </button>
+
+            @foreach (var type in Model.ResourceTypes.Where(t => t.Value != ""))
+            {
+                <button class="btn btn-outline-primary type-btn"
+                        data-type-id="@type.Value"
+                        onclick="filterByType(this, '@type.Value')">
+                    @type.Text
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- ── Results ────────────────────────────────────────────────────────── -->
+    <p class="text-muted mb-3" id="resultCount"></p>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="resourceList">
+        @await Html.PartialAsync("_ResourceCards", Model.Resources)
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        // ── AJAX filter by type button ────────────────────────────────────────────
+        function filterByType(btn, typeId) {
+            // Clear keyword input so both options don't conflict
+            document.getElementById("keywordInput").value = "";
+
+            // Highlight active button
+            document.querySelectorAll(".type-btn").forEach(b => {
+                b.classList.remove("btn-primary");
+                b.classList.add("btn-outline-primary");
+            });
+            btn.classList.remove("btn-outline-primary");
+            btn.classList.add("btn-primary");
+
+            // Fetch filtered results via AJAX — no page reload
+            fetch(`/Resource/FilterByType?resourceTypeId=${typeId}`)
+                .then(res => res.text())
+                .then(html => {
+                    document.getElementById("resourceList").innerHTML = html;
+                    updateResultCount();
+                });
+        }
+
+        // Update result count text
+        function updateResultCount() {
+            const count = document.querySelectorAll("#resourceList .col").length;
+            document.getElementById("resultCount").textContent =
+                `Showing ${count} resource(s)`;
+        }
+
+        // Set initial count on page load
+        document.addEventListener("DOMContentLoaded", updateResultCount);
+    </script>
+}
