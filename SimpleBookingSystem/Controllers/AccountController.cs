@@ -42,7 +42,6 @@ public class AccountController : Controller
         {
             FullName = model.FullName,
             Email = model.Email,
-            // Hash the plain password before storing — never store plain text
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
             Role = "User",
             IsActive = true,
@@ -67,7 +66,6 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        // Find user by email (exclude soft deleted users)
         var user = await _context.Users
                        .FirstOrDefaultAsync(u => u.Email == model.Email && !u.IsDeleted);
 
@@ -92,7 +90,7 @@ public class AccountController : Controller
         // Save refresh token to database
         await _authService.SaveRefreshTokenAsync(user.UserId, refreshToken);
 
-        // Store access token in HttpOnly cookie (not accessible by JavaScript)
+        // Store access token in HttpOnly cookie
         Response.Cookies.Append("AccessToken", accessToken, new CookieOptions
         {
             HttpOnly = true,
@@ -150,7 +148,6 @@ public class AccountController : Controller
 
         var stored = await _authService.GetRefreshTokenAsync(oldRefreshToken);
 
-        // Validate: must exist, not revoked, and not expired
         if (stored == null || stored.IsRevoked || stored.ExpiryDate < DateTime.UtcNow)
         {
             Response.Cookies.Delete("AccessToken");
@@ -158,7 +155,7 @@ public class AccountController : Controller
             return RedirectToAction("Login");
         }
 
-        // Generate new tokens (rotation — old refresh token is revoked)
+        // Generate new tokens
         var newAccessToken = _authService.GenerateAccessToken(stored.User);
         var newRefreshToken = _authService.GenerateRefreshToken();
 
@@ -168,7 +165,6 @@ public class AccountController : Controller
         // Save new refresh token to database
         await _authService.SaveRefreshTokenAsync(stored.UserId, newRefreshToken);
 
-        // Issue new cookies
         Response.Cookies.Append("AccessToken", newAccessToken, new CookieOptions
         {
             HttpOnly = true,
