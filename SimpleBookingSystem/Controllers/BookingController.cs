@@ -57,7 +57,6 @@ public class BookingController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(CreateBookingViewModel model)
     {
-        // Manually validate times since they come from JavaScript hidden fields
         if (model.StartTime == default || model.EndTime == default)
         {
             TempData["Error"] = "Please select a time slot from the calendar.";
