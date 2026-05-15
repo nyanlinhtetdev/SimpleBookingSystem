@@ -52,13 +52,19 @@ public class AdminService : IAdminService
 
     // ── Bookings ──────────────────────────────────────────────────────────────
 
-    public async Task<List<AdminBookingViewModel>> GetAllBookingsAsync()
+    public async Task<PagedResult<AdminBookingViewModel>> GetAllBookingsAsync(int page, int pageSize)
     {
-        return await _context.Bookings
+        var query = _context.Bookings
             .Include(b => b.User)
             .Include(b => b.Resource)
                 .ThenInclude(r => r.ResourceType)
-            .OrderByDescending(b => b.CreatedAt)
+            .OrderByDescending(b => b.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(b => new AdminBookingViewModel
             {
                 BookingId = b.BookingId,
@@ -73,6 +79,15 @@ public class AdminService : IAdminService
                 CreatedAt = b.CreatedAt
             })
             .ToListAsync();
+
+        return new PagedResult<AdminBookingViewModel>
+        {
+            Items = items,
+            CurrentPage = page,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            TotalCount = totalCount,
+            PageSize = pageSize
+        };
     }
 
     public async Task<bool> CancelAnyBookingAsync(Guid bookingId)
@@ -89,11 +104,17 @@ public class AdminService : IAdminService
 
     // ── Users ─────────────────────────────────────────────────────────────────
 
-    public async Task<List<AdminUserViewModel>> GetAllUsersAsync()
+    public async Task<PagedResult<AdminUserViewModel>> GetAllUsersAsync(int page, int pageSize)
     {
-        return await _context.Users
+        var query = _context.Users
             .Where(u => !u.IsDeleted)
-            .OrderByDescending(u => u.CreatedAt)
+            .OrderByDescending(u => u.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(u => new AdminUserViewModel
             {
                 UserId = u.UserId,
@@ -106,6 +127,15 @@ public class AdminService : IAdminService
                 TotalBookings = u.Bookings.Count
             })
             .ToListAsync();
+
+        return new PagedResult<AdminUserViewModel>
+        {
+            Items = items,
+            CurrentPage = page,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            TotalCount = totalCount,
+            PageSize = pageSize
+        };
     }
 
     public async Task<bool> DeactivateUserAsync(Guid userId)
