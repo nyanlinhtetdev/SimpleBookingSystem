@@ -29,10 +29,10 @@ public class AdminController : Controller
     // ── All Bookings ──────────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> AllBookings()
+    public async Task<IActionResult> AllBookings(int page = 1)
     {
-        var bookings = await _adminService.GetAllBookingsAsync();
-        return View(bookings);
+        var result = await _adminService.GetAllBookingsAsync(page, pageSize: 10);
+        return View(result);
     }
 
     [HttpPost]
@@ -50,10 +50,10 @@ public class AdminController : Controller
     // ── Manage Users ──────────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> ManageUsers()
+    public async Task<IActionResult> ManageUsers(int page = 1)
     {
-        var users = await _adminService.GetAllUsersAsync();
-        return View(users);
+        var result = await _adminService.GetAllUsersAsync(page, pageSize: 10);
+        return View(result);
     }
 
     [HttpPost]
@@ -97,7 +97,6 @@ public class AdminController : Controller
             ResourceTypes = await _resourceService.GetResourceTypeSelectListAsync()
         };
 
-        // Remove "All Types" placeholder option — not valid for a form
         model.ResourceTypes.RemoveAt(0);
 
         return View(model);
