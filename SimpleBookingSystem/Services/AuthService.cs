@@ -49,7 +49,6 @@ public class AuthService : IAuthService
 
     public string GenerateRefreshToken()
     {
-        // Generates a cryptographically secure random 64-byte string
         var randomBytes = new byte[64];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomBytes);
@@ -86,7 +85,6 @@ public class AuthService : IAuthService
 
         if (existing != null)
         {
-            // Soft revoke — keep the record, just mark it invalid
             existing.IsRevoked = true;
             await _context.SaveChangesAsync();
         }
