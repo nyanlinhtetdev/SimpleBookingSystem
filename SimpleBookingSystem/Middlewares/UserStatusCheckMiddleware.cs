@@ -30,16 +30,12 @@ public class UserStatusCheckMiddleware
 
                 if (!isUserActive)
                 {
-                    // User was deactivated/deleted while logged in! 
-                    // Nuke their cookies and force logout.
+                    
                     context.Response.Cookies.Delete("AccessToken");
                     context.Response.Cookies.Delete("RefreshToken");
-
-                    // Optional: Add a message to display on the login screen
-                    // context.Session or TempData is normally used, but since we are in middleware,
-                    // a simple redirect with a query param works well.
+                   
                     context.Response.Redirect("/Account/Login");
-                    return; // Stop processing this request
+                    return; 
                 }
             }
         }

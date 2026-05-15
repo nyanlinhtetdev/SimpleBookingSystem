@@ -45,11 +45,10 @@ public class TokenRefreshMiddleware
     {
         var stored = await authService.GetRefreshTokenAsync(refreshToken);
 
-        // Refresh token is invalid, revoked, or expired — do nothing, let OnChallenge handle redirect
+        // If refresh token is invalid, revoked, or expired, OnChallenge will handle redirect
         if (stored == null || stored.IsRevoked || stored.ExpiryDate < DateTime.UtcNow)
             return;
 
-        // ✅ Refresh token is valid — rotate tokens silently
         var newAccessToken = authService.GenerateAccessToken(stored.User);
         var newRefreshToken = authService.GenerateRefreshToken();
 
@@ -59,7 +58,6 @@ public class TokenRefreshMiddleware
         // Save new refresh token to DB
         await authService.SaveRefreshTokenAsync(stored.UserId, newRefreshToken);
 
-        // Issue new cookies — user won't notice anything happened
         context.Response.Cookies.Append("AccessToken", newAccessToken, new CookieOptions
         {
             HttpOnly = true,
@@ -98,8 +96,8 @@ public class TokenRefreshMiddleware
                 ValidIssuer = jwtSettings["Issuer"],
                 ValidateAudience = true,
                 ValidAudience = jwtSettings["Audience"],
-                ValidateLifetime = true,  // This is what checks expiry
-                ClockSkew = TimeSpan.Zero  // No tolerance — exact expiry
+                ValidateLifetime = true, 
+                ClockSkew = TimeSpan.Zero 
             }, out _);
 
             return false; // Token is still valid
@@ -110,7 +108,7 @@ public class TokenRefreshMiddleware
         }
         catch
         {
-            return false; // Other errors (tampered token etc.) — let JwtBearer handle it
+            return false; 
         }
     }
 }
