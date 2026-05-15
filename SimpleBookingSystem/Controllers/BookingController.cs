@@ -171,9 +171,17 @@ public class BookingController : Controller
     // ── AJAX — Get Booked Slots for Calendar ──────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> GetBookedSlots(Guid resourceId, DateTime startDate)
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> GetBookedSlots(Guid resourceId, string startDate, string endDate)
     {
-        var slots = await _bookingService.GetBookedSlotsAsync(resourceId, startDate);
+        // Parse date strings explicitly — avoids C# DateTime parsing issues
+        if (!DateTime.TryParse(startDate, out var start) ||
+            !DateTime.TryParse(endDate, out var end))
+        {
+            return BadRequest("Invalid date range.");
+        }
+
+        var slots = await _bookingService.GetBookedSlotsAsync(resourceId, start, end);
         return Json(slots);
     }
 }

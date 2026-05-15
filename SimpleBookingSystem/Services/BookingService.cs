@@ -67,12 +67,8 @@ public class BookingService : IBookingService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<List<object>> GetBookedSlotsAsync(Guid resourceId, DateTime startDate)
+    public async Task<List<object>> GetBookedSlotsAsync(Guid resourceId, DateTime startDate, DateTime endDate)
     {
-        // Fetch booked slots for the entire week view (7 days from startDate)
-        // FullCalendar passes the start of the visible range, not just one day
-        var endDate = startDate.AddDays(7);
-
         var slots = await _context.Bookings
             .Where(b => b.ResourceId == resourceId &&
                         b.Status == "Active" &&
@@ -80,8 +76,9 @@ public class BookingService : IBookingService
                         b.StartTime < endDate)
             .Select(b => new
             {
-                start = b.StartTime,
-                end = b.EndTime
+                // ⭐ Return as ISO 8601 string — FullCalendar parses this correctly
+                start = b.StartTime.ToString("yyyy-MM-ddTHH:mm:ss"),
+                end = b.EndTime.ToString("yyyy-MM-ddTHH:mm:ss")
             })
             .ToListAsync();
 

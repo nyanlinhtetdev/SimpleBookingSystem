@@ -10,8 +10,7 @@ public interface IBookingService
 
     Task<BookingViewModel?> GetBookingByIdAsync(Guid bookingId, Guid userId);
 
-    Task<List<object>> GetBookedSlotsAsync(Guid resourceId, DateTime startDate);
-
+    Task<List<object>> GetBookedSlotsAsync(Guid resourceId, DateTime startDate, DateTime endDate);
     Task<bool> CreateBookingAsync(Guid userId, CreateBookingViewModel model);
 
     Task<bool> EditBookingAsync(Guid userId, EditBookingViewModel model);

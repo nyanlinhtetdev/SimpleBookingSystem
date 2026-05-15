@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrEmpty(TempData["Error"]?.ToString()))
+    @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show">
             @TempData["Error"]
@@ -150,49 +150,94 @@
         const noSelection   = document.getElementById("noSelection");
         const selectionInfo = document.getElementById("selectionInfo");
 
-        // Current booking times — shown in yellow on calendar
-        const currentStart  = new Date("@Model.StartTime.ToString("yyyy-MM-ddTHH:mm:ss")");
-        const currentEnd    = new Date("@Model.EndTime.ToString("yyyy-MM-ddTHH:mm:ss")");
+        // Current booking times — used to show yellow block and skip in red events
+        const currentStart = new Date("@Model.StartTime.ToString("yyyy-MM-ddTHH:mm:ss")");
+        const currentEnd   = new Date("@Model.EndTime.ToString("yyyy-MM-ddTHH:mm:ss")");
 
-        let selectedEventId = null;
+        // ⭐ Use FullCalendar's built-in events function — same fix as Create.cshtml
+        // Automatically re-fetches when user navigates to a new week/day
+        function loadEvents(fetchInfo, successCallback, failureCallback) {
+            const start = fetchInfo.startStr.split("T")[0];
+            const end   = fetchInfo.endStr.split("T")[0];
+
+            fetch(`/Booking/GetBookedSlots?resourceId=${resourceId}&startDate=${start}&endDate=${end}&_t=${Date.now()}`, {
+                cache: "no-store"
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Network error");
+                return res.json();
+            })
+            .then(data => {
+                const events = [];
+
+                // ⭐ Always add current booking as yellow — shown regardless of week
+                events.push({
+                    id:        "currentBooking",
+                    title:     "Current Booking",
+                    start:     currentStart,
+                    end:       currentEnd,
+                    color:     "#ffc107",
+                    textColor: "#000"
+                });
+
+                // Add all other booked slots as red — skip current booking
+                data.forEach(slot => {
+                    const slotStart = new Date(slot.start);
+
+                    // Skip current booking — already shown in yellow above
+                    if (slotStart.getTime() === currentStart.getTime()) return;
+
+                    events.push({
+                        title:     "Booked",
+                        start:     slot.start,
+                        end:       slot.end,
+                        color:     "#dc3545",
+                        textColor: "#fff"
+                    });
+                });
+
+                successCallback(events);
+            })
+            .catch(err => {
+                console.error("Failed to load booked slots:", err);
+                failureCallback(err);
+            });
+        }
 
         const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
-            initialView:   "timeGridWeek",
-            allDaySlot:    false,
-            slotMinTime:   "08:00:00",
-            slotMaxTime:   "20:00:00",
-            slotDuration:  "01:00:00",
-            snapDuration:  "01:00:00",
-            initialDate:   currentStart,   // open calendar on current booking's date
+            initialView:  "timeGridWeek",
+            allDaySlot:   false,
+            slotMinTime:  "08:00:00",
+            slotMaxTime:  "20:00:00",
+            slotDuration: "01:00:00",
+            snapDuration: "01:00:00",
+            initialDate:  currentStart,  // open on current booking's week
             headerToolbar: {
                 left:   "prev,next today",
                 center: "title",
                 right:  "timeGridWeek,timeGridDay"
             },
 
-            datesSet: function (info) {
-                fetchBookedSlots(info.start);
-            },
+            // ⭐ Pass function — FullCalendar manages fetching automatically
+            events: loadEvents,
 
             select: function (info) {
                 const start    = info.start;
                 const end      = info.end;
                 const duration = (end - start) / 3600000;
 
-                // Remove previous new selection
-                if (selectedEventId) {
-                    const prev = calendar.getEventById(selectedEventId);
-                    if (prev) prev.remove();
-                }
+                // Remove previous new selection only — keep yellow + red events
+                const prev = calendar.getEventById("selection");
+                if (prev) prev.remove();
 
                 // Add green new selection block
-                selectedEventId = "selection";
                 calendar.addEvent({
-                    id:    "selection",
-                    title: "New Booking",
-                    start: start,
-                    end:   end,
-                    color: "#198754"
+                    id:        "selection",
+                    title:     "New Booking",
+                    start:     start,
+                    end:       end,
+                    color:     "#198754",
+                    textColor: "#fff"
                 });
 
                 startHidden.value = formatForCSharp(start);
@@ -215,47 +260,10 @@
 
             selectable:    true,
             selectMirror:  true,
-            events:        [],
-            eventColor:    "#dc3545",
-            eventTextColor: "#fff",
             height:        "auto"
         });
 
         calendar.render();
-
-        // Show current booking in yellow immediately
-        calendar.addEvent({
-            id:    "currentBooking",
-            title: "Current Booking",
-            start: currentStart,
-            end:   currentEnd,
-            color: "#ffc107",
-            textColor: "#000"
-        });
-
-        function fetchBookedSlots(startDate) {
-            const dateStr = startDate.toISOString().split("T")[0];
-            fetch(`/Booking/GetBookedSlots?resourceId=${resourceId}&startDate=${dateStr}`)
-                .then(res => res.json())
-                .then(data => {
-                    // Remove booked events but keep current booking (yellow) and new selection (green)
-                    calendar.getEvents()
-                        .filter(e => e.id !== "selection" && e.id !== "currentBooking")
-                        .forEach(e => e.remove());
-
-                    data.forEach(slot => {
-                        // Skip the current booking — already shown in yellow
-                        if (slot.start === currentStart.toISOString()) return;
-
-                        calendar.addEvent({
-                            title: "Booked",
-                            start: slot.start,
-                            end:   slot.end,
-                            color: "#dc3545"
-                        });
-                    });
-                });
-        }
 
         function formatForCSharp(date) {
             const pad = n => String(n).padStart(2, "0");

@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrEmpty(TempData["Error"]?.ToString()))
+    @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show">
             @TempData["Error"]
@@ -29,14 +29,10 @@
 
     <form asp-action="Create" asp-controller="Booking" method="post" id="bookingForm">
         @Html.AntiForgeryToken()
-
-        @* Use plain name attributes — easier for model binding *@
         <input type="hidden" name="ResourceId" value="@Model.ResourceId" />
         <input type="hidden" name="ResourceName" value="@Model.ResourceName" />
         <input type="hidden" name="TypeName" value="@Model.TypeName" />
         <input type="hidden" name="Location" value="@Model.Location" />
-
-        @* These will be filled by JavaScript when user clicks a slot *@
         <input type="hidden" name="StartTime" id="startTimeHidden" />
         <input type="hidden" name="EndTime" id="endTimeHidden" />
 
@@ -140,48 +136,75 @@
 
         let selectedEventId = null;
 
+        // ⭐ Use FullCalendar's built-in events function
+        // This is the correct way to load events dynamically —
+        // FullCalendar calls this automatically on load AND on every navigation
+        function loadEvents(fetchInfo, successCallback, failureCallback) {
+            const start = fetchInfo.startStr.split("T")[0]; // "YYYY-MM-DD"
+            const end   = fetchInfo.endStr.split("T")[0];
+
+            fetch(`/Booking/GetBookedSlots?resourceId=${resourceId}&startDate=${start}&endDate=${end}&_t=${Date.now()}`, {
+                cache: "no-store"
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Network error");
+                return res.json();
+            })
+            .then(data => {
+                // Map DB slots to FullCalendar event objects
+                const events = data.map(slot => ({
+                    title:           "Booked",
+                    start:           slot.start,
+                    end:             slot.end,
+                    color:           "#dc3545",
+                    textColor:       "#fff",
+                    display:         "block"
+                }));
+                successCallback(events);
+            })
+            .catch(err => {
+                console.error("Failed to load booked slots:", err);
+                failureCallback(err);
+            });
+        }
+
         const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
-            initialView:  "timeGridWeek",
-            allDaySlot:   false,
-            slotMinTime:  "08:00:00",
-            slotMaxTime:  "20:00:00",
-            slotDuration: "01:00:00",
-            snapDuration: "01:00:00",
+            initialView:   "timeGridWeek",
+            allDaySlot:    false,
+            slotMinTime:   "08:00:00",
+            slotMaxTime:   "20:00:00",
+            slotDuration:  "01:00:00",
+            snapDuration:  "01:00:00",
             headerToolbar: {
                 left:   "prev,next today",
                 center: "title",
                 right:  "timeGridWeek,timeGridDay"
             },
 
-            // ⭐ Fetch booked slots every time the visible date range changes
-            // This includes the initial load — so calendar is always up to date
-            datesSet: function (info) {
-                fetchBookedSlots(info.start);
-            },
+            // ⭐ Pass function directly — FullCalendar manages fetching automatically
+            // It re-calls this every time user navigates to a new week/day
+            events: loadEvents,
 
             select: function (info) {
                 const start    = info.start;
                 const end      = info.end;
                 const duration = (end - start) / 3600000;
 
-                // Remove previous selection
-                if (selectedEventId) {
-                    const prev = calendar.getEventById(selectedEventId);
-                    if (prev) prev.remove();
-                }
+                // Remove previous selection highlight
+                const prev = calendar.getEventById("selection");
+                if (prev) prev.remove();
 
                 // Add green selection block
-                selectedEventId = "selection";
                 calendar.addEvent({
-                    id:    "selection",
-                    title: "Your Booking",
-                    start: start,
-                    end:   end,
-                    color: "#198754"
+                    id:        "selection",
+                    title:     "Your Booking",
+                    start:     start,
+                    end:       end,
+                    color:     "#198754",
+                    textColor: "#fff"
                 });
 
-                // ⭐ Format datetime for C# model binding
-                // Must be: "MM/DD/YYYY HH:MM AM/PM" or ISO format that C# accepts
+                // Fill hidden fields for form submission
                 startHidden.value = formatForCSharp(start);
                 endHidden.value   = formatForCSharp(end);
 
@@ -203,7 +226,6 @@
 
             selectable:    true,
             selectMirror:  true,
-            events:        [],
             eventColor:    "#dc3545",
             eventTextColor: "#fff",
             height:        "auto"
@@ -211,28 +233,7 @@
 
         calendar.render();
 
-        function fetchBookedSlots(date) {
-            const dateStr = date.toISOString().split("T")[0];
-            fetch(`/Booking/GetBookedSlots?resourceId=${resourceId}&startDate=${dateStr}`)
-                .then(res => res.json())
-                .then(data => {
-                    // Remove only booked events — keep selection green block
-                    calendar.getEvents()
-                        .filter(e => e.id !== "selection")
-                        .forEach(e => e.remove());
-
-                    data.forEach(slot => {
-                        calendar.addEvent({
-                            title: "Booked",
-                            start: slot.start,
-                            end:   slot.end,
-                            color: "#dc3545"
-                        });
-                    });
-                });
-        }
-
-        // ⭐ Format Date to a string C# DateTime can parse reliably
+        // Format JS Date to ISO string C# DateTime can reliably parse
         function formatForCSharp(date) {
             const pad = n => String(n).padStart(2, "0");
             return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
